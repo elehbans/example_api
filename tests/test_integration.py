@@ -1,39 +1,56 @@
-import os
-import pytest
+from flask.testing import FlaskClient
+import json
+from typing import Dict
 
-from .utils.load_sample_data import load_sample_data
-from api import create_app
-from api.db import init_db, flush_db
+from api.db.models import Contact
 
-@pytest.fixture(scope="session", autouse=True)
-def client():
-    app = create_app()
-    app.config['TESTING'] = True # verbose error logging
+APPLICATION_JSON = 'application/json'
+CONTACTS_URL = '/contacts'
+CONTACT_URL = '/contact'
 
-    with app.test_client() as client:
-        with app.app_context():
-            os.environ['RUNNING_LOCALLY'] = 'True'
-            init_db()
-            load_sample_data()
-        yield client
-    
-    flush_db()
-
-# BAD:
+# TODO: 
+# Failure Modes
 # Bad url
 # bad request type
 # nonexistent id
 # malformed json
 
-# GOOD:
-# GET contacts - list all contacts
-def test_list_all_contacts(client):
-    rv = client.get('/contacts')
-    print(rv)
+# Success Modes
+def test_list_all_contacts(client: FlaskClient, input_data):
+    rv = client.get(CONTACTS_URL)
+    json_data = rv.get_json()
+    print(json_data)
 
+# def test_add_contact(client: FlaskClient, contact: Dict):
+#     rv = client.post(CONTACTS_URL, data=contact, content_type=APPLICATION_JSON)
 
-# POST contacts - create new contact
-# PUT contact/id - update a contact
-# GET contacts/id - get a specific contact
-# DELETE contacts/id - delete a contact
-# GET contacts/call-list
+# def test_update_contact(client: FlaskClient, contact):
+#     new_contact = Contact(**contact)
+#     new_contact.name.first = 'Arborist'
+#     new_contact.save()
+#     new_contact.name.first = 'not-an-arborist'
+
+#     rv = client.put(f'{CONTACT_URL}/{new_contact.pk}', data=json.loads(new_contact.json()), content_type=APPLICATION_JSON)
+#     print(rv)
+#     # assert that pk is returned?
+
+# def test_get_specific_contact(client: FlaskClient, contact: Dict):
+#     new_contact = Contact(**contact)
+#     new_contact.name.first = 'Jerry'
+#     new_contact.save()
+#     rv = client.get(f'{CONTACT_URL}/{new_contact.pk}')
+
+#     # assert rv has 'Jerry' in name
+
+# def test_delete_contact(client: FlaskClient, contact: Dict):
+#     new_contact = Contact(**contact)
+#     new_contact.name.first = 'Zeus'
+#     new_contact.save()
+#     rv = client.delete(f'{CONTACT_URL}/{new_contact.pk}')
+
+#     # assert rv is pk
+
+# def test_get_call_list(client: FlaskClient):
+#     rv = client.get(f'{CONTACTS_URL}/call-list')
+
+#     # assert in order by creating compound key, copying, sorting and checking if equal

@@ -1,33 +1,31 @@
 ### DEPENDENCIES ###
-from flask import request, abort, jsonify
+from flask import request, abort, jsonify, Blueprint, Flask
 from pydantic import ValidationError
-from redis_om import NotFoundError
+from redis_om import NotFoundError, get_redis_connection
+from werkzeug.exceptions import BadRequest
 
-from api import create_app
 from api.db import init_db
 from api.db.models import Contact
 from api.utils import create_call_list
 
-### SETUP ###
-app = create_app()
-init_db()
+blueprint = Blueprint('example_api', __name__)
 
 ### ERROR HANDLING ###
-@app.errorhandler(404)
+@blueprint.errorhandler(404)
 def resource_not_found(e):
     return jsonify(error='Invalid Route'), 404
 
-@app.errorhandler(403)
+@blueprint.errorhandler(403)
 def prohibited_request_type(e):
     return jsonify(error='Prohibited Request Type'), 403
 
-@app.errorhandler(400)
-def bad_request(e):
-    return jsonify(error=e), 400
+@blueprint.errorhandler(400)
+def bad_request(e: BadRequest):
+    return e
 
 
 ### ENDPOINTS ###
-@app.route('/contacts', methods = ['GET', 'POST'])
+@blueprint.route('/contacts', methods = ['GET', 'POST'])
 def contacts():
     if request.method == 'POST':
         try:
@@ -37,39 +35,57 @@ def contacts():
         
         new_contact.save()
 
-        return new_contact.pk
+        return jsonify(new_contact.pk), 200
     elif request.method == 'GET':
-        all_contacts = Contact.find().all()
-        return all_contacts
+        try:
+            try:
+                all_contacts = Contact.find(Contact.name.first == 'Harold')
+                print(all_contacts.first())
+            except Exception as e:
+                print(e)
+            return jsonify(all_contacts), 200
+        except:
+            return jsonify([]), 200
     else:
         abort(403)
 
-@app.route('/contact/<user_id>', methods = ['GET', 'PUT', 'DELETE'])
+@blueprint.route('/contact/<user_id>', methods = ['GET', 'PUT', 'DELETE'])
 def single_contact(user_id):
     if request.method in ['GET', 'PUT', 'DELETE']:
         try:
             contact = Contact.get(str(user_id))
         except NotFoundError:
-            abort(400, "User Id Not Found")
+            abort(400, description="User Id Not Found")
 
         if request.method == 'GET':
-            return contact.json
+            return contact.json, 200
         elif request.method == 'PUT':
             new_values = Contact.parse_obj(**request.json)
             contact.update(new_values)
-            return contact.pk
+            return jsonify(contact.pk), 200
         elif request.method == 'DELETE':
             contact.delete()
-            return user_id
+            return jsonify(user_id), 200
     else:
         abort(403)
 
-@app.route('/contacts/call-list', methods = ['GET'])
+@blueprint.route('/contacts/call-list', methods = ['GET'])
 def call_list():
     if request.method == 'GET':
-        sorted_home_phone_only_contacts = Contact.find().sort_by("lastname", "firstname").all()
-        call_list = create_call_list(sorted_home_phone_only_contacts)
-        return call_list
+        # ensure return format is the expected minimal representation
+        r = get_redis_connection() 
+        home_phone_contacts = r.ft().search('@type:(home)').docs
+        call_list = create_call_list(home_phone_contacts)
+        return jsonify(call_list), 200
     else:
         abort(403)
-        
+
+def create_app(config='dev'):
+    app = Flask(__name__) 
+    app.register_blueprint(blueprint) 
+    return app
+
+if __name__ == "__main__":
+    create_app()
+    init_db()
+    

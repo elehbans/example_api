@@ -11,16 +11,16 @@ from api.config import Config
 # Connection docs: https://github.com/redis/redis-om-python/blob/bc2199f2d4a54062414b6cfc7b2eaccd980716be/docs/connections.md
 print(os.environ.get('RUNNING_LOCALLY'))
 if os.environ.get('RUNNING_LOCALLY') == 'True':
-        hostname = 'localhost'
+    hostname = 'localhost'
 else:
-        hostname = Config.REDIS_SERVICE_NAME
+    hostname = Config.REDIS_SERVICE_NAME
 
 redis_meta = get_redis_connection(host=hostname, port=Config.REDIS_PORT)
 
 class Name(EmbeddedJsonModel):
-    first: str = Field(index=True),
+    first: str = Field(index=True, full_text_search=True),
     middle: str
-    last: str = Field(index=True)
+    last: str = Field(index=True, full_text_search=True)
 
 class Address(EmbeddedJsonModel):
     street: str
@@ -30,7 +30,7 @@ class Address(EmbeddedJsonModel):
 
 class PhoneNumber(EmbeddedJsonModel):
     number: str
-    type: str
+    type: str = Field(index=True)
 
 class Contact(JsonModel):
     name: Name
