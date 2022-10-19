@@ -1,5 +1,20 @@
 # example_api
 
+## Development
+
+When developing locally:
+
+First create a running local redis instance: `docker run -p 6379:6379 redislabs/redisearch:latest`
+
+After creating the redis instance, you can also run the flask app locally:
+
+```bash
+cd api
+source .env
+export RUNNING_LOCALLY=True
+flask run
+```
+
 ## Deployment
 
 After cloning the repo and installing Docker Compose, you can deploy both the redis data store instance as well as the flask API:
@@ -13,13 +28,13 @@ The API can be used by sending HTTP requests to the local instance as shown in t
 
 ## Testing
 
-Unit tests for the flask API are done with PyTest and the data-store connection is mocked. These tests can be run with `pytest api/tests` from the root directory.
+Unit tests for the flask API are done with pytest and do not test functionality related to redis. These tests can be run with `python -m pytest tests/test_unit.py` from the root directory.
 
-Integration tests against the locally deployed API and redis instance can be run by `pytest tests/integration/`.
+Integration tests can be run a locally deployed redis instance by `python -m pytest tests/test_integration.py` after creating a running redis instance (see Development for example docker command). 
 
 ## CI / CD
 
-Github action for each commit runs unit tests
+Github action for each commit runs unit and integration tests
 
 ## Hygiene
 
@@ -31,4 +46,7 @@ Use black for formatting
 
 ## Development Notes
 - Took a little over an hour to get the containers connected and working correctly based setup on a nice [post](https://levelup.gitconnected.com/implement-api-caching-with-redis-flask-and-docker-step-by-step-9139636cef24)
+- Took another 2.5 hours to get the basic api structure and tests sketched out (lots of reading the docs)
+- Some debugging and cleanup took about 30 minutes
+- Networking issues took another hour as the docs are a bit opaque as to how to use redis within a docker network
 
