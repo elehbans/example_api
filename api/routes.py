@@ -38,11 +38,7 @@ def contacts():
         return jsonify(new_contact.pk), 200
     elif request.method == 'GET':
         try:
-            try:
-                all_contacts = Contact.find(Contact.name.first == 'Harold')
-                print(all_contacts.first())
-            except Exception as e:
-                print(e)
+            all_contacts = Contact.find('*')
             return jsonify(all_contacts), 200
         except:
             return jsonify([]), 200
@@ -58,13 +54,13 @@ def single_contact(user_id):
             abort(400, description="User Id Not Found")
 
         if request.method == 'GET':
-            return contact.json, 200
+            return contact.json(), 200
         elif request.method == 'PUT':
             new_values = Contact.parse_obj(**request.json)
             contact.update(new_values)
             return jsonify(contact.pk), 200
         elif request.method == 'DELETE':
-            contact.delete()
+            contact.delete(user_id)
             return jsonify(user_id), 200
     else:
         abort(403)
